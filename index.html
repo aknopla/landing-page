@@ -1,0 +1,1197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Aknopla | Real-time location intelligence for urban areas</title>
+<meta name="description" content="Aknopla understands human interactions with every place in urban areas, in real time: beyond a name, an address and opening hours, to what matters for each kind of place. Every answer is traced to its source.">
+<script>document.documentElement.classList.add('js');</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300..600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* Layout idea: white page, near-black type, near-black rounded blocks carry every visual.
+   Single light theme by choice. */
+:root {
+  color-scheme: light;
+  --ink: #050505;
+  --paper: #ffffff;
+  --muted: #5f5f5f;
+  --quiet: #8c8c8c;
+  --line: #e6e6e3;
+  --wash: #f4f4f2;
+  --glow: #ffd9a0;            /* light points inside the dark visuals */
+  --font: "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+  --mono: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --gutter: clamp(20px, 4vw, 56px);
+  --max: 1320px;
+  --bar: 64px;
+  --radius-block: 28px;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+html { scroll-behavior: smooth; overflow-x: clip; }
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font);
+  font-size: 1.0625rem;
+  line-height: 1.5;
+  font-weight: 400;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: clip;
+}
+h1, h2, h3, p { margin: 0; }
+a { color: inherit; text-decoration: none; }
+:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; border-radius: 4px; }
+
+.wrap { width: 100%; max-width: var(--max); margin-inline: auto; padding-inline: var(--gutter); }
+.display {
+  font-weight: 400;
+  letter-spacing: -0.025em;
+  line-height: 1;
+  text-wrap: balance;
+}
+.h2 { font-size: clamp(2.25rem, 4.6vw, 4.25rem); }
+.body { color: var(--muted); max-width: 34em; }
+.label {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* ---------- Scroll reveal ---------- */
+.js [data-reveal] {
+  opacity: 0;
+  transform: translateY(28px);
+  transition: opacity 0.9s cubic-bezier(.2,.7,.2,1), transform 0.9s cubic-bezier(.2,.7,.2,1);
+  transition-delay: var(--d, 0s);
+}
+.js [data-reveal].in { opacity: 1; transform: none; }
+
+/* ---------- 0. Top bar ---------- */
+.topbar {
+  position: fixed; inset: 0 0 auto 0; z-index: 50;
+  height: var(--bar);
+  background: var(--paper);
+  color: var(--ink);
+  border-bottom: 1px solid var(--line);
+  transition: background-color .3s, color .3s, border-color .3s;
+}
+.topbar.on-band:not(.menu-open) { background: #000; color: #fff; border-bottom-color: transparent; }
+.topbar .wrap { height: 100%; display: flex; align-items: center; gap: clamp(20px, 4vw, 48px); }
+.logo { font-size: 1.25rem; font-weight: 500; letter-spacing: -0.02em; }
+.nav { display: flex; align-items: stretch; align-self: stretch; gap: 4px; }
+.nav-group { display: flex; align-items: center; }   /* full bar height, so the pointer never leaves it on the way down */
+.nav-trigger, .nav-link { display: inline-flex; align-items: center; gap: 6px; padding: 10px 12px; font-size: 0.875rem; border-radius: 8px; }
+.nav-trigger::after {
+  content: ""; width: 6px; height: 6px; margin-top: -3px;
+  border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor;
+  transform: rotate(45deg); opacity: .7; transition: transform .25s;
+}
+.nav-group:hover .nav-trigger::after, .nav-group.open .nav-trigger::after { transform: rotate(225deg); margin-top: 3px; }
+/* Dropdown: a full-width panel that opens directly under the bar. */
+.dropdown {
+  position: absolute; top: 100%; left: 0; right: 0;
+  background: var(--paper); color: var(--ink);
+  border-top: 1px solid var(--line); border-bottom: 1px solid var(--line);
+  box-shadow: 0 30px 60px rgba(5,5,5,.10);
+  opacity: 0; visibility: hidden;
+  transition: opacity .25s ease, visibility .25s;
+}
+.dropdown-inner {
+  max-width: var(--max); margin-inline: auto; padding: 48px var(--gutter) 48px;
+  display: flex; flex-direction: column; align-items: flex-start; gap: 0;
+  transform: translateY(-8px); transition: transform .3s cubic-bezier(.2,.7,.2,1);
+}
+.nav-group:hover .dropdown,
+.nav-group:focus-within .dropdown,
+.nav-group.open .dropdown { opacity: 1; visibility: visible; }
+.nav-group:hover .dropdown-inner,
+.nav-group:focus-within .dropdown-inner,
+.nav-group.open .dropdown-inner { transform: none; }
+.dropdown a { display: block; padding: 4px 0; transition: color .2s; }
+.dropdown a:hover, .dropdown a:focus-visible { color: var(--muted); }
+.dd-title { display: block; font-size: 1.25rem; letter-spacing: -0.01em; line-height: 1.375; }
+/* The bar turns solid white while a menu is open. */
+.topbar:has(.nav-group:hover), .topbar:has(.nav-group:focus-within), .topbar:has(.nav-group.open) {
+  background: var(--paper); color: var(--ink); border-bottom-color: transparent;
+}
+.menu-button {
+  display: none; margin-left: auto;
+  font: inherit; font-size: 0.95rem; color: inherit;
+  background: none; border: 1px solid currentColor; border-radius: 8px;
+  padding: 7px 14px; cursor: pointer;
+}
+
+/* ---------- 1. Hero ----------
+   A rounded box holding the background video. In the pinned sequence, initStage()
+   shrinks this box on scroll until it sits behind the section 2 visual as its back layer. */
+.hero {
+  position: relative;
+  height: 100vh; height: 100svh; min-height: 480px;
+  color: #fff; background: var(--paper);          /* white page around the hero box */
+  display: grid; place-items: center;
+}
+.hero-box {
+  position: absolute; left: 12px; right: 12px; top: var(--bar); bottom: 12px;
+  border-radius: var(--radius-block); overflow: hidden;
+  background: var(--ink);
+}
+/* The media keeps the size of the screen and is scaled down as the box shrinks (zoom out). */
+.hero-media {
+  position: absolute; left: 50%; top: 50%; width: 100vw; height: 100vh;
+  transform: translate(-50%, -50%) scale(var(--s, 1));
+}
+.hero-media canvas, .hero-media video { position: absolute; inset: 0; width: 100%; height: 100%; }
+.hero-media video { object-fit: cover; opacity: 0; transition: opacity 1.2s; }
+.hero.has-video .hero-media video { opacity: 1; }
+.hero-overlay { position: absolute; inset: 0; background: linear-gradient(rgba(5,5,5,.5), rgba(5,5,5,.38) 45%, rgba(5,5,5,.66)); }
+.hero.has-video .hero-overlay { background: rgba(5,5,5,.58); }
+.hero h1 {
+  position: relative; z-index: 2;
+  max-width: 13em; padding-inline: var(--gutter);
+  text-align: center;
+  font-size: clamp(2.5rem, 5.4vw, 5.25rem);
+  opacity: var(--head, 1);
+}
+.scroll-cue {
+  position: absolute; z-index: 2; bottom: 28px; left: 50%; transform: translateX(-50%);
+  display: flex; flex-direction: column; align-items: center; gap: 10px;
+  color: rgba(255,255,255,.8);
+  opacity: var(--head, 1);
+}
+.scroll-cue i { display: block; width: 1px; height: 36px; background: rgba(255,255,255,.25); position: relative; overflow: hidden; }
+.scroll-cue i::after { content: ""; position: absolute; left: 0; top: -40%; width: 100%; height: 40%; background: #fff; animation: cue 2.2s ease-in-out infinite; }
+@keyframes cue { to { top: 100%; } }
+
+/* ---------- 2, 3, 4. Continuous-scroll sections ---------- */
+.story { position: relative; padding-block: clamp(72px, 12vh, 140px); }
+.story-grid {
+  display: grid; grid-template-columns: 1fr; align-items: center;
+  gap: clamp(36px, 6vw, 104px);
+}
+.story-text { display: flex; flex-direction: column; gap: 24px; align-items: flex-start; min-width: 0; }
+.story-text .second { font-size: clamp(1.25rem, 1.9vw, 1.625rem); line-height: 1.25; letter-spacing: -0.015em; max-width: 24em; }
+.visual {
+  position: relative;
+  width: min(100%, 72vh); aspect-ratio: 1 / 1; margin-inline: auto;
+  background: var(--ink); border-radius: var(--radius-block);
+  overflow: hidden;
+}
+.visual canvas, .visual svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+
+@media (min-width: 900px) {
+  .story-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .story.flip .story-text { order: 2; }
+}
+/* Black band for sections 2 to 4 */
+.dark-band { background: #000; color: #fff; }
+.dark-band .h2 { font-size: clamp(1.875rem, 3.1vw, 3rem); }
+.dark-band .story-text { gap: 20px; }
+.dark-band .story-text .second { font-size: clamp(1.0625rem, 1.4vw, 1.3125rem); }
+.dark-band .body { color: rgba(255,255,255,.66); font-size: 0.9375rem; }
+.dark-band .visual { border: 1px solid rgba(255,255,255,.12); }
+.dark-band .btn { background: #fff; color: #000; }
+.dark-band .tip { background: #fff; color: #000; }
+/* Sections 2 to 4 fade in and out; --o (opacity, 0 to 1) is set per section by initStage().
+   Default ("flow"): sections sit in normal flow and fade as they pass.
+   .pinned (added by script when every section fits one screen): the stage stays fixed
+   on screen and the three sections replace each other in place, with no movement. */
+.dark-band .story { opacity: var(--o, 1); }
+.dark-band.pinned { height: 560vh; }             /* 130vh hero transition + 3 sections x 110vh + one screen */
+.dark-band.pinned .stage { position: sticky; top: 0; height: 100vh; overflow: hidden; }
+.dark-band.pinned .story {
+  position: absolute; inset: 0;
+  display: grid; align-items: center;
+  padding-block: calc(var(--bar) + 16px) 16px;
+  opacity: var(--o, 0); visibility: hidden;
+}
+.dark-band.pinned .story.live { visibility: visible; }
+.dark-band.pinned .story { z-index: 2; pointer-events: none; }
+.dark-band.pinned .story[data-state="in"] { pointer-events: auto; }
+.dark-band.pinned .hero { position: absolute; inset: 0; height: auto; min-height: 0; z-index: 1; pointer-events: none; background: transparent; }
+/* White backdrop behind the hero box; fades to the black band during the transition (--white from initStage). */
+.dark-band.pinned .stage::before { content: ""; position: absolute; inset: 0; background: var(--paper); opacity: var(--white, 1); z-index: 0; }
+.dark-band.pinned .hero-box { right: auto; bottom: auto; }       /* left, top, width, height come from initStage() */
+/* One shared frame: the hero box stays on screen through sections 2 to 4 and slides between
+   right and left. Each section's visual is only content inside it: no background or border of
+   its own, moved and cross-faded by initStage(). */
+.dark-band.pinned .hero-box { border: 1px solid rgba(255,255,255,.12); }
+.dark-band.pinned .visual { background: transparent; border-color: transparent; opacity: 0; will-change: transform, opacity; }
+
+/* Text in and out (pinned mode). initStage() splits each text block into lines (.ln > .li) and
+   words (.w) and sets data-state on the section: "before", "in" or "after".
+   In: heading lines rise from behind a mask while their words settle from the accent tint to
+   white; paragraph lines lift slightly while their words fade in one after another.
+   Out: lines fade quickly and slip upward. */
+.ln { display: block; overflow: clip; padding-bottom: 0.14em; margin-bottom: -0.14em; }
+.li { display: block; }
+.w { display: inline-block; }
+.dark-band.pinned .story-text .li {
+  opacity: 0; transform: translateY(50%);
+  transition: opacity .3s ease-in, transform .3s ease-in;
+}
+.dark-band.pinned .story-text .h2 .li { transform: translateY(110%); }
+.dark-band.pinned .story[data-state="after"] .story-text .li { transform: translateY(-60%); }
+.dark-band.pinned .story-text .w { opacity: 0; transition: opacity .25s, color .25s; }
+.dark-band.pinned .story-text .h2 .w { opacity: 1; color: var(--glow); transition: color 0s .35s; }   /* tint resets only after the line has faded */
+.dark-band.pinned .story-text .tip-host { opacity: 0; transition: opacity .3s; }
+.dark-band.pinned .story[data-state="in"] .story-text .li {
+  opacity: 1; transform: none;
+  transition: opacity .8s ease-out, transform 1s cubic-bezier(.2,.7,.2,1);
+  transition-delay: calc(.05s + var(--e, 0) * .12s + var(--l, 0) * .09s);
+}
+.dark-band.pinned .story[data-state="in"] .story-text .w {
+  opacity: 1;
+  transition: opacity .6s ease-out;
+  transition-delay: calc(.2s + var(--e, 0) * .12s + var(--i, 0) * .018s);
+}
+.dark-band.pinned .story[data-state="in"] .story-text .h2 .w {
+  color: #fff;
+  transition: color 1.1s ease-out;
+  transition-delay: calc(.2s + var(--i, 0) * .07s);
+}
+.dark-band.pinned .story[data-state="in"] .story-text .tip-host { opacity: 1; transition: opacity .8s ease-out 1.1s; }
+
+/* Button + tooltip */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  font: inherit; font-size: 1rem; font-weight: 500;
+  background: #000; color: #fff; border: 0; border-radius: 8px;
+  padding: 14px 22px; cursor: pointer;
+}
+.btn[aria-disabled="true"] { opacity: .38; cursor: not-allowed; }
+.tip-host { position: relative; display: inline-flex; margin-top: 8px; }
+.tip {
+  position: absolute; left: 50%; bottom: calc(100% + 10px); transform: translate(-50%, 4px);
+  white-space: nowrap; padding: 7px 10px; border-radius: 6px;
+  background: var(--ink); color: #fff;
+  opacity: 0; pointer-events: none; transition: opacity .2s, transform .2s;
+}
+.tip-host:hover .tip, .tip-host:focus-within .tip { opacity: 1; transform: translate(-50%, 0); }
+
+/* Section 2 visual: detail card */
+.place-card {
+  position: absolute; z-index: 2;
+  width: min(200px, 46%);
+  padding: 14px; border-radius: 12px;
+  background: #fff; color: var(--ink);
+  box-shadow: 0 16px 40px rgba(0,0,0,.45);
+  display: flex; flex-direction: column; gap: 12px;
+  transition: opacity .35s;
+  pointer-events: none;
+}
+.place-card.swap { opacity: 0; }
+.pc-type { color: var(--ink); line-height: 1.3; }
+.pc-row { display: flex; flex-direction: column; gap: 6px; }
+.pc-row span { color: var(--muted); }
+.pc-row i { display: block; height: 8px; border-radius: 4px; background: var(--ink); }
+.pc-row .seg { display: flex; gap: 4px; }
+.pc-row .seg i { flex: 1; }
+.pc-row .seg i.off { background: var(--line); }
+.marker { cursor: pointer; }
+.marker .dot { fill: rgba(255,255,255,.75); transition: fill .3s; }
+.marker.active .dot { fill: var(--glow); }
+.marker .ring { fill: none; stroke: var(--glow); stroke-width: .35; opacity: 0; transform-box: fill-box; transform-origin: center; }
+.marker.active .ring { animation: ring 1.8s ease-out infinite; }
+@keyframes ring { from { opacity: .9; transform: scale(.5); } to { opacity: 0; transform: scale(1.6); } }
+
+/* ---------- 5. Three cards ---------- */
+.props { padding-block: clamp(88px, 14vh, 180px); overflow: clip; }
+.props-head { display: flex; flex-direction: column; gap: 20px; }
+.fan { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; margin-block: clamp(48px, 8vh, 88px); }
+.fan-slot { min-width: 0; display: flex; }
+.card {
+  flex: 1;
+  display: flex; flex-direction: column; gap: 56px; justify-content: space-between;
+  padding: 28px; border-radius: 12px;
+  background: var(--paper); border: 1px solid var(--line);
+}
+.card h3 { font-size: clamp(1.75rem, 2.6vw, 2.375rem); }
+.card p { font-size: 1rem; line-height: 1.5; color: var(--muted); }
+.card p strong { font-weight: 600; color: var(--ink); }
+.props-close { font-size: clamp(1.25rem, 1.9vw, 1.625rem); line-height: 1.3; letter-spacing: -0.015em; max-width: 30em; }
+
+/* ---------- 6. Partners ---------- */
+.partners { padding-block: clamp(56px, 9vh, 110px) clamp(140px, 24vh, 280px); }
+.partners h2 { font-size: clamp(1.5rem, 2.4vw, 2.25rem); }
+.partner-row {
+  list-style: none; margin: 40px 0 0; padding: 32px 0 0;
+  border-top: 1px solid var(--line);
+  display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 24px 32px;
+}
+.partner-row li { color: var(--quiet); font-size: clamp(1.25rem, 2vw, 1.75rem); font-weight: 500; letter-spacing: -0.02em; display: flex; align-items: center; }
+/* Monotone logos: flatten each file to solid black, then lighten to the same grey as the text. */
+.partner-row img { display: block; height: clamp(22px, 2.4vw, 32px); width: auto; max-width: 160px; filter: brightness(0) opacity(.45); }
+
+/* ---------- 7. Closing ---------- */
+.closing { padding-bottom: clamp(40px, 6vh, 72px); }
+.closing-block {
+  position: relative; overflow: hidden;
+  background: var(--ink); color: #fff; border-radius: var(--radius-block);
+  padding: clamp(48px, 9vw, 128px) clamp(24px, 6vw, 96px);
+  min-height: min(70vh, 640px);
+  display: flex; flex-direction: column; justify-content: flex-end; gap: 28px;
+}
+.closing-block canvas { position: absolute; inset: 0; width: 100%; height: 100%; opacity: .7; }
+.closing-block > :not(canvas) { position: relative; }
+.closing-block h2 { max-width: 14em; }
+.closing-block p { max-width: 32em; font-size: clamp(1.0625rem, 1.5vw, 1.3125rem); color: rgba(255,255,255,.78); }
+
+/* ---------- Footer: link columns and one small line, on white ---------- */
+.footer { background: var(--paper); color: var(--ink); border-top: 1px solid var(--line); padding-block: clamp(72px, 12vh, 160px) 32px; }
+.footer .wrap { display: flex; flex-direction: column; gap: clamp(56px, 9vh, 96px); }
+.footer-top { display: grid; grid-template-columns: 1fr; gap: 40px; align-items: start; }
+.footer .logo { font-size: 1.25rem; }
+.footer-cols { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 32px 24px; }
+.footer-col { display: flex; flex-direction: column; gap: 0; }
+.footer-col .label { color: var(--quiet); margin-bottom: 16px; min-height: 1.5em; }
+.footer-col a { font-size: 0.875rem; line-height: 1.5; padding: 2px 0; align-self: flex-start; }
+.footer-col a:hover, .footer-col a:focus-visible { color: var(--muted); }
+.footer-note { font-size: 0.8125rem; color: var(--muted); border-top: 1px solid var(--line); padding-top: 24px; }
+@media (min-width: 760px) {
+  .footer-top { grid-template-columns: minmax(120px, 1fr) minmax(0, 5fr); }
+  .footer-cols { grid-template-columns: repeat(3, minmax(0, 200px)); }
+}
+
+/* ---------- Mobile ---------- */
+@media (max-width: 760px) {
+  .menu-button { display: inline-flex; }
+  .nav {
+    display: none;
+    position: absolute; top: var(--bar); left: 0; right: 0;
+    flex-direction: column; align-items: stretch; gap: 8px;
+    padding: 12px var(--gutter) 24px;
+    background: var(--paper); color: var(--ink);
+    border-bottom: 1px solid var(--line);
+    max-height: calc(100vh - var(--bar)); overflow-y: auto;
+  }
+  .nav.open { display: flex; }
+  .nav-trigger { padding: 10px 0; color: var(--muted); }
+  .nav-trigger::after { display: none; }
+  .nav-group { display: block; }
+  .nav-link { padding: 10px 0; font-size: 1.125rem; }
+  .dropdown {
+    position: static; border: 0; box-shadow: none;
+    opacity: 1; visibility: visible;
+  }
+  .dropdown-inner { padding: 0; transform: none; gap: 0; }
+  .dd-title { font-size: 1.125rem; }
+  .dropdown a { padding: 10px 0; }
+}
+@media (max-width: 899px) {
+  .fan { grid-template-columns: 1fr; gap: 12px; }
+  .card { gap: 28px; }
+  .partner-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+/* ---------- Reduced motion: no movement anywhere ---------- */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .js [data-reveal] { opacity: 1; transform: none; transition: none; }
+  .scroll-cue i::after, .marker.active .ring { animation: none; }
+  .marker.active .ring { opacity: .7; }
+  .dropdown, .dropdown-inner, .tip, .place-card, .hero video { transition: none; }
+}
+</style>
+</head>
+<body>
+
+<!-- 0. Top bar -->
+<header class="topbar" id="topbar">
+  <div class="wrap">
+    <!-- PLACEHOLDER LOGO: replace the contents of #logo with the final logo. -->
+    <a href="index.html" class="logo" id="logo">Aknopla</a>
+
+    <nav class="nav" id="site-nav" aria-label="Main">
+      <div class="nav-group">
+        <a href="#" class="nav-trigger" aria-haspopup="true">Products</a>
+        <div class="dropdown"><div class="dropdown-inner">
+          <a href="#"><span class="dd-title">I Know A Place</span></a>
+          <a href="#"><span class="dd-title">Lantern-Rise</span></a>
+        </div></div>
+      </div>
+      <div class="nav-group">
+        <a href="#" class="nav-trigger" aria-haspopup="true">Solutions</a>
+        <div class="dropdown"><div class="dropdown-inner">
+          <a href="#"><span class="dd-title">Place owners</span></a>
+          <a href="#"><span class="dd-title">Intelligence</span></a>
+        </div></div>
+      </div>
+      <a href="technology.html" class="nav-link">Technology</a>
+    </nav>
+
+    <button class="menu-button" id="menu-button" type="button" aria-controls="site-nav" aria-expanded="false">Menu</button>
+  </div>
+</header>
+
+<main>
+
+<!-- Hero and sections 2 to 4 share one black band. On large screens the stage is pinned:
+     the hero box shrinks into the section 2 visual, then the sections fade in place (initStage). -->
+<div class="dark-band" id="dark-band">
+<div class="stage" id="stage">
+
+<!-- 1. Hero banner -->
+<section class="hero" id="hero">
+  <div class="hero-box" id="hero-box">
+    <div class="hero-media" id="hero-media">
+      <!-- PLACEHOLDER MEDIA (fallback): animated canvas, shown whenever the video is not playing. -->
+      <canvas id="hero-canvas" aria-hidden="true"></canvas>
+      <!-- PLACEHOLDER MEDIA: hero video. Its source is HERO_VIDEO_URL at the top of the script. -->
+      <video id="hero-video" muted loop playsinline preload="auto" aria-hidden="true" tabindex="-1"></video>
+    </div>
+    <div class="hero-overlay"></div>
+  </div>
+  <h1 class="display">The new frontier of location intelligence.</h1>
+  <div class="scroll-cue label" aria-hidden="true"><span>Scroll</span><i></i></div>
+</section>
+
+
+<!-- 2. Text left, visual right -->
+<section class="story" id="section-2">
+  <div class="story-pin">
+    <div class="wrap story-grid">
+      <div class="story-text">
+        <h2 class="display h2">Understanding human interactions with every place, in real time.</h2>
+        <p class="second">Every answer is traced to its source, so you know what to trust.</p>
+        <p class="body">Standard place data stops at a name, an address and opening hours. Aknopla records what matters for each kind of place: for somewhere to sit and talk, the time limit and the noise; for a badminton court, the price and how to book.</p>
+        <span class="tip-host">
+          <a class="btn" href="technology.html">How it works</a>
+        </span>
+      </div>
+      <!-- PLACEHOLDER VISUAL 2: abstract map with place markers and a detail card.
+           Built in code by initVisual2(); replace the contents of #visual-2 to swap it. -->
+      <div class="visual" id="visual-2" aria-hidden="true"></div>
+    </div>
+  </div>
+</section>
+
+<!-- 3. Text right, visual left -->
+<section class="story flip" id="section-3">
+  <div class="story-pin">
+    <div class="wrap story-grid">
+      <div class="story-text">
+        <h2 class="display h2">Keeping up with a city that never stands still</h2>
+        <p class="body">Urban places change faster than location data is refreshed. A shop can open and close within months; its hours, prices and rules can change in a week.</p>
+        <p class="body">Aknopla updates each place record as the change is observed, sourced from the people who were just there.</p>
+      </div>
+      <!-- PLACEHOLDER VISUAL 3: grid of place markers that appear, disappear and update.
+           Built in code by initVisual3(); replace the contents of #visual-3 to swap it. -->
+      <div class="visual" id="visual-3" aria-hidden="true"></div>
+    </div>
+  </div>
+</section>
+
+<!-- 4. Text left, visual right -->
+<section class="story" id="section-4">
+  <div class="story-pin">
+    <div class="wrap story-grid">
+      <div class="story-text">
+        <h2 class="display h2">Turning open contribution into trusted intelligence</h2>
+        <p class="body">Anyone can contribute to Aknopla. Every contribution carries a record of its origin and how it was made, and we weigh it on that record, whoever the contributor says they are. Influence follows provenance, so adding accounts adds none. The method is provenance-based truth discovery.</p>
+        <p class="body">Each kind of place has its own schema, so every contribution arrives as a structured, comparable data point. Every value we publish is a current estimate, dated by the evidence behind it and revised as new evidence arrives.</p>
+      </div>
+      <!-- PLACEHOLDER VISUAL 4: many points flowing in and merging into one steady point.
+           Built in code by initVisual4(); replace the contents of #visual-4 to swap it. -->
+      <div class="visual" id="visual-4" aria-hidden="true"></div>
+    </div>
+  </div>
+</section>
+
+</div>
+</div>
+
+<!-- 5. Three cards -->
+<section class="props" id="section-5">
+  <div class="wrap">
+    <div class="props-head">
+      <h2 class="display h2" data-reveal>Breadth, depth and freshness</h2>
+      <p class="body" data-reveal style="--d:.08s">Three properties of the data follow from the technology.</p>
+    </div>
+    <div class="fan">
+      <div class="fan-slot" data-reveal>
+        <article class="card">
+          <h3 class="display">Breadth</h3>
+          <p><strong>Coverage.</strong> With no vetting step, the source base is everyone who visits and runs places. Coverage extends to more places and more kinds of place.</p>
+        </article>
+      </div>
+      <div class="fan-slot" data-reveal style="--d:.1s">
+        <article class="card">
+          <h3 class="display">Depth</h3>
+          <p><strong>Attribute granularity.</strong> Each kind of place carries its own schema, so a place is described field by field, well beyond a name, a category and a rating.</p>
+        </article>
+      </div>
+      <div class="fan-slot" data-reveal style="--d:.2s">
+        <article class="card">
+          <h3 class="display">Freshness</h3>
+          <p><strong>Latency.</strong> Contribution is continuous. A change enters the data when it is observed, with no wait for the next release.</p>
+        </article>
+      </div>
+    </div>
+    <p class="props-close" data-reveal>Breadth and depth compound. Any community can define a schema for a new kind of place, which extends coverage and granularity without central curation.</p>
+  </div>
+</section>
+
+<!-- 6. Partners -->
+<section class="partners" id="section-6">
+  <div class="wrap">
+    <h2 class="display" data-reveal>Helping power map data used by</h2>
+    <!-- PLACEHOLDER WORDMARKS: plain text until the approved logo files arrive.
+         To swap one in, replace the text inside its <li> with
+           <img src="logos/aws.svg" alt="AWS">
+         Any logo file with a transparent background works: the CSS below (#partners img)
+         renders every logo in the same single grey, whatever its original colours. -->
+    <ul class="partner-row" id="partners" data-reveal style="--d:.08s">
+      <li>AWS</li>
+      <li>Microsoft</li>
+      <li>TomTom</li>
+      <li>BrightQuery</li>
+      <li>Esri</li>
+      <li>Meta</li>
+    </ul>
+  </div>
+</section>
+
+<!-- 7. Closing -->
+<section class="closing" id="section-7">
+  <div class="wrap">
+    <div class="closing-block" data-reveal>
+      <!-- PLACEHOLDER BACKGROUND: subtle animated canvas, drawn by initCityCanvas(). -->
+      <canvas id="closing-canvas" aria-hidden="true"></canvas>
+      <h2 class="display h2">Place data with a basis for trusting each value</h2>
+      <p>Broad, deep and current, with provenance behind every value. If you work with place data in urban areas, we would like to hear from you.</p>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<!-- 8. Footer -->
+<footer class="footer">
+  <div class="wrap">
+    <div class="footer-top">
+      <!-- PLACEHOLDER LOGO (footer copy) -->
+      <a href="index.html" class="logo">Aknopla</a>
+      <nav class="footer-cols" aria-label="Footer">
+        <div class="footer-col">
+          <p class="label">Products</p>
+          <a href="#">I Know A Place</a>
+          <a href="#">Lantern-Rise</a>
+        </div>
+        <div class="footer-col">
+          <p class="label">Solutions</p>
+          <a href="#">Place owners</a>
+          <a href="#">Intelligence</a>
+        </div>
+        <div class="footer-col">
+          <p class="label" aria-hidden="true"></p>
+          <a href="technology.html">Technology</a>
+        </div>
+      </nav>
+    </div>
+    <p class="footer-note">Aknopla. Understanding human interactions with every place, in real time.</p>
+    <!-- Copyright line, legal links and social links can join this bottom line once the wording exists. -->
+  </div>
+</footer>
+
+<script>
+/* ==========================================================================
+   PLACEHOLDER — hero background video. Replace this URL with the final file.
+   Current file: "Lake Shore Drive Traffic" from Wikimedia Commons,
+   licensed CC BY-SA 4.0 (attribution required while it is in use):
+   https://commons.wikimedia.org/wiki/File:Lake_Shore_Drive_Traffic.webm
+   If the video cannot load or play, the animated canvas behind it stays visible.
+   ========================================================================== */
+const HERO_VIDEO_URL = 'https://commons.wikimedia.org/wiki/Special:FilePath/Lake_Shore_Drive_Traffic.webm';
+
+(function () {
+  'use strict';
+  const $ = (s, r) => (r || document).querySelector(s);
+  const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
+  const rand = (a, b) => a + Math.random() * (b - a);
+
+  /* ---------- Reduced motion ---------- */
+  const motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+  let reduced = motionQuery.matches;
+  const motionListeners = [];
+  const onMotionChange = () => { reduced = motionQuery.matches; motionListeners.forEach(fn => fn()); };
+  if (motionQuery.addEventListener) motionQuery.addEventListener('change', onMotionChange);
+  else if (motionQuery.addListener) motionQuery.addListener(onMotionChange);
+
+  /* ---------- Shared helpers for the canvas placeholders ---------- */
+  // Keeps a canvas sized to its box. Call S.resize() once after setup.
+  function fit(canvas, onResize) {
+    const S = { w: 1, h: 1, ctx: canvas.getContext('2d') };
+    S.resize = function () {
+      const box = { width: canvas.clientWidth, height: canvas.clientHeight };   // layout size, ignores transforms
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      S.w = Math.max(1, box.width); S.h = Math.max(1, box.height);
+      canvas.width = Math.round(S.w * dpr); canvas.height = Math.round(S.h * dpr);
+      S.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      if (onResize) onResize();
+    };
+    if ('ResizeObserver' in window) new ResizeObserver(S.resize).observe(canvas);
+    else window.addEventListener('resize', S.resize);
+    return S;
+  }
+  // Runs draw(dtMs) each frame while the element is on screen and motion is allowed.
+  // With reduced motion it draws one still frame (dt = 0) and stops.
+  function makeLoop(el, draw, allowed) {
+    let raf = 0, last = 0, visible = !('IntersectionObserver' in window);
+    function frame(t) {
+      const dt = last ? Math.min(50, t - last) : 16;
+      last = t; draw(dt); raf = requestAnimationFrame(frame);
+    }
+    function update() {
+      const run = visible && !reduced && (!allowed || allowed());
+      if (run && !raf) { last = 0; raf = requestAnimationFrame(frame); }
+      else if (!run && raf) { cancelAnimationFrame(raf); raf = 0; }
+      if (!run) draw(0);
+    }
+    if ('IntersectionObserver' in window) {
+      new IntersectionObserver(es => { visible = es[es.length - 1].isIntersecting; update(); }).observe(el);
+    }
+    motionListeners.push(update);
+    update();
+    return { update: update };
+  }
+
+  /* ==========================================================================
+     PLACEHOLDER — city-grid canvas: slow-moving points of light on a dark grid.
+     Used as the hero fallback and as the closing block background.
+     ========================================================================== */
+  function initCityCanvas(canvas, opts, allowed) {
+    const gap = opts.gap;
+    let pts = [];
+    function newPoint() {
+      const horizontal = Math.random() < 0.5;
+      const span = horizontal ? S.h : S.w;
+      return {
+        horizontal: horizontal,
+        line: Math.floor(Math.random() * (span / gap + 1)) * gap,
+        pos: Math.random() * (horizontal ? S.w : S.h),
+        speed: rand(6, 26) * (Math.random() < 0.5 ? -1 : 1),
+        size: rand(0.9, 2.2),
+        warm: Math.random() < 0.6
+      };
+    }
+    function seed() {
+      const n = Math.round((S.w + S.h) / gap * opts.density);
+      pts = []; for (let i = 0; i < n; i++) pts.push(newPoint());
+    }
+    function draw(dt) {
+      const c = S.ctx, w = S.w, h = S.h;
+      c.clearRect(0, 0, w, h);
+      c.lineWidth = 1;
+      for (let x = 0, i = 0; x <= w; x += gap, i++) {
+        c.strokeStyle = i % 4 === 0 ? 'rgba(255,255,255,0.10)' : 'rgba(255,255,255,0.045)';
+        c.beginPath(); c.moveTo(x + 0.5, 0); c.lineTo(x + 0.5, h); c.stroke();
+      }
+      for (let y = 0, j = 0; y <= h; y += gap, j++) {
+        c.strokeStyle = j % 4 === 0 ? 'rgba(255,255,255,0.10)' : 'rgba(255,255,255,0.045)';
+        c.beginPath(); c.moveTo(0, y + 0.5); c.lineTo(w, y + 0.5); c.stroke();
+      }
+      for (const p of pts) {
+        const len = p.horizontal ? w : h;
+        p.pos += p.speed * dt / 1000;
+        if (p.pos > len + 40) p.pos = -40; else if (p.pos < -40) p.pos = len + 40;
+        const x = p.horizontal ? p.pos : p.line, y = p.horizontal ? p.line : p.pos;
+        const tail = 34 * Math.sign(p.speed);
+        const tx = p.horizontal ? x - tail : x, ty = p.horizontal ? y : y - tail;
+        const rgb = p.warm ? '255,217,160' : '255,255,255';
+        const g = c.createLinearGradient(x, y, tx, ty);
+        g.addColorStop(0, 'rgba(' + rgb + ',0.55)'); g.addColorStop(1, 'rgba(' + rgb + ',0)');
+        c.strokeStyle = g; c.lineWidth = p.size;
+        c.beginPath(); c.moveTo(x, y); c.lineTo(tx, ty); c.stroke();
+        const halo = c.createRadialGradient(x, y, 0, x, y, p.size * 7);
+        halo.addColorStop(0, 'rgba(' + rgb + ',0.35)'); halo.addColorStop(1, 'rgba(' + rgb + ',0)');
+        c.fillStyle = halo; c.beginPath(); c.arc(x, y, p.size * 7, 0, 6.2832); c.fill();
+        c.fillStyle = 'rgba(' + rgb + ',0.95)'; c.beginPath(); c.arc(x, y, p.size, 0, 6.2832); c.fill();
+      }
+    }
+    const S = fit(canvas, () => { seed(); draw(0); });
+    S.resize();
+    return makeLoop(canvas, draw, allowed);
+  }
+
+  /* ---------- 1. Hero: video with canvas fallback ---------- */
+  (function initHero() {
+    const hero = $('#hero'), video = $('#hero-video');
+    let videoPlaying = false, sourceSet = false;
+    const heroLoop = initCityCanvas($('#hero-canvas'), { gap: 56, density: 1.5 }, () => !videoPlaying);
+
+    video.addEventListener('playing', () => { videoPlaying = true; hero.classList.add('has-video'); heroLoop.update(); });
+    video.addEventListener('error', () => { videoPlaying = false; hero.classList.remove('has-video'); heroLoop.update(); });
+    function syncVideo() {
+      if (reduced) { video.pause(); return; }       // reduced motion: video stays paused
+      if (!HERO_VIDEO_URL) return;
+      if (!sourceSet) { video.src = HERO_VIDEO_URL; sourceSet = true; }
+      const p = video.play();
+      if (p && p.catch) p.catch(() => { /* autoplay refused or file blocked: canvas stays */ });
+    }
+    motionListeners.push(syncVideo);
+    syncVideo();
+  })();
+
+  /* ==========================================================================
+     PLACEHOLDER VISUAL 2 — abstract map with place markers and a detail card.
+     The card differs by type of place. Auto-cycles; markers can be clicked.
+     ========================================================================== */
+  (function initVisual2() {
+    const host = $('#visual-2');
+    const NS = 'http://www.w3.org/2000/svg';
+    // Two kinds of place, each with its own fields (bars stand in for values).
+    const TYPES = [
+      { name: 'somewhere to sit and talk', fields: ['time limit', 'noise'], shape: 'circle' },
+      { name: 'badminton court', fields: ['price', 'how to book'], shape: 'square' }
+    ];
+    const MARKERS = [
+      { x: 24, y: 27, t: 0, v: [62, 2] }, { x: 46, y: 54, t: 1, v: [44, 78] },
+      { x: 82, y: 33, t: 0, v: [88, 4] }, { x: 34, y: 74, t: 1, v: [70, 52] },
+      { x: 68, y: 79, t: 0, v: [36, 3] }, { x: 66, y: 19, t: 1, v: [56, 90] },
+      { x: 14, y: 50, t: 0, v: [74, 1] }
+    ];
+    const ROADS = [
+      ['M-5 22 L105 30', 0.6, 0.16], ['M-5 58 L105 50', 0.9, 0.2], ['M-5 86 L105 90', 0.6, 0.14],
+      ['M18 -5 L24 105', 0.6, 0.16], ['M52 -5 L47 105', 0.9, 0.2], ['M80 -5 L87 105', 0.6, 0.14],
+      ['M-5 96 L62 -5', 0.4, 0.1], ['M36 -5 L105 70', 0.4, 0.1],
+      ['M-5 40 C 28 34, 60 72, 105 64', 3.2, 0.06]
+    ];
+    const svg = document.createElementNS(NS, 'svg');
+    svg.setAttribute('viewBox', '0 0 100 100');
+    ROADS.forEach(r => {
+      const p = document.createElementNS(NS, 'path');
+      p.setAttribute('d', r[0]); p.setAttribute('fill', 'none');
+      p.setAttribute('stroke', 'rgba(255,255,255,' + r[2] + ')'); p.setAttribute('stroke-width', r[1]);
+      svg.appendChild(p);
+    });
+    const nodes = MARKERS.map((m, i) => {
+      const g = document.createElementNS(NS, 'g');
+      g.setAttribute('class', 'marker');
+      const ring = document.createElementNS(NS, 'circle');
+      ring.setAttribute('class', 'ring'); ring.setAttribute('cx', m.x); ring.setAttribute('cy', m.y); ring.setAttribute('r', 5);
+      let dot;
+      if (TYPES[m.t].shape === 'circle') {
+        dot = document.createElementNS(NS, 'circle');
+        dot.setAttribute('cx', m.x); dot.setAttribute('cy', m.y); dot.setAttribute('r', 1.7);
+      } else {
+        dot = document.createElementNS(NS, 'rect');
+        dot.setAttribute('x', m.x - 1.6); dot.setAttribute('y', m.y - 1.6);
+        dot.setAttribute('width', 3.2); dot.setAttribute('height', 3.2); dot.setAttribute('rx', 0.6);
+      }
+      dot.setAttribute('class', 'dot');
+      const hit = document.createElementNS(NS, 'circle');
+      hit.setAttribute('cx', m.x); hit.setAttribute('cy', m.y); hit.setAttribute('r', 6); hit.setAttribute('fill', 'transparent');
+      g.appendChild(ring); g.appendChild(dot); g.appendChild(hit);
+      g.addEventListener('click', () => { show(i); restart(); });
+      svg.appendChild(g);
+      return g;
+    });
+    host.appendChild(svg);
+
+    const card = document.createElement('div');
+    card.className = 'place-card';
+    host.appendChild(card);
+
+    let current = -1, timer = 0, swapTimer = 0;
+    function fill(i) {
+      const m = MARKERS[i], type = TYPES[m.t];
+      let html = '<div class="pc-type label">' + type.name + '</div>';
+      type.fields.forEach((f, k) => {
+        let bar;
+        if (m.t === 0 && k === 1) {           // level meter
+          bar = '<div class="seg">';
+          for (let s = 1; s <= 5; s++) bar += '<i class="' + (s <= m.v[1] ? '' : 'off') + '"></i>';
+          bar += '</div>';
+        } else {
+          bar = '<i style="width:' + m.v[k] + '%"></i>';
+        }
+        html += '<div class="pc-row"><span class="label">' + f + '</span>' + bar + '</div>';
+      });
+      card.innerHTML = html;
+      card.style.left = m.x + '%'; card.style.top = m.y + '%';
+      const tx = m.x > 55 ? 'calc(-100% - 16px)' : '16px';
+      const ty = m.y > 55 ? 'calc(-100% - 12px)' : '12px';
+      card.style.transform = 'translate(' + tx + ',' + ty + ')';
+      card.classList.remove('swap');
+    }
+    function show(i) {
+      if (i === current) return;
+      nodes.forEach((n, k) => n.classList.toggle('active', k === i));
+      current = i;
+      clearTimeout(swapTimer);
+      if (reduced) { fill(i); return; }
+      card.classList.add('swap');
+      swapTimer = setTimeout(() => fill(i), 220);
+    }
+    function restart() {
+      clearInterval(timer); timer = 0;
+      if (!reduced) timer = setInterval(() => show((current + 1) % MARKERS.length), 2800);
+    }
+    motionListeners.push(restart);
+    fill(0); nodes[0].classList.add('active'); current = 0;
+    restart();
+  })();
+
+  /* ==========================================================================
+     PLACEHOLDER VISUAL 3 — grid of place markers; about once a second a few
+     markers appear, disappear or update.
+     ========================================================================== */
+  (function initVisual3() {
+    const host = $('#visual-3');
+    const canvas = document.createElement('canvas');
+    host.appendChild(canvas);
+    let cells = [], cols = 0, rows = 0, step = 0, ox = 0, oy = 0, clock = 0;
+    function build() {
+      step = Math.max(30, Math.min(52, S.w / 10));
+      cols = Math.max(3, Math.floor((S.w - step) / step));
+      rows = Math.max(3, Math.floor((S.h - step) / step));
+      ox = (S.w - (cols - 1) * step) / 2; oy = (S.h - (rows - 1) * step) / 2;
+      cells = [];
+      for (let i = 0; i < cols * rows; i++) {
+        const on = Math.random() < 0.55 ? 1 : 0;
+        cells.push({ on: on, p: on, pulse: 0 });
+      }
+    }
+    function mutate() {
+      for (let k = 0; k < 3; k++) {
+        const c = cells[Math.floor(Math.random() * cells.length)];
+        if (!c.on) c.on = 1;                          // appear
+        else if (Math.random() < 0.45) c.on = 0;      // disappear
+        else c.pulse = 1;                             // update
+      }
+    }
+    function draw(dt) {
+      const c = S.ctx;
+      clock += dt;
+      if (clock >= 1000) { clock = 0; mutate(); }
+      c.clearRect(0, 0, S.w, S.h);
+      for (let i = 0; i < cells.length; i++) {
+        const cell = cells[i];
+        const x = ox + (i % cols) * step, y = oy + Math.floor(i / cols) * step;
+        cell.p += (cell.on - cell.p) * Math.min(1, dt / 200);
+        cell.pulse = Math.max(0, cell.pulse - dt / 1100);
+        c.fillStyle = 'rgba(255,255,255,0.14)';
+        c.beginPath(); c.arc(x, y, 1.1, 0, 6.2832); c.fill();
+        if (cell.p > 0.02) {
+          const r = step * 0.12 * cell.p;
+          c.fillStyle = cell.pulse > 0
+            ? 'rgba(255,' + Math.round(255 - 38 * cell.pulse) + ',' + Math.round(255 - 95 * cell.pulse) + ',' + (0.9 * cell.p) + ')'
+            : 'rgba(255,255,255,' + (0.88 * cell.p) + ')';
+          c.beginPath(); c.arc(x, y, r, 0, 6.2832); c.fill();
+        }
+        if (cell.pulse > 0) {
+          c.strokeStyle = 'rgba(255,217,160,' + (0.8 * cell.pulse) + ')';
+          c.lineWidth = 1.2;
+          c.beginPath(); c.arc(x, y, step * 0.12 + step * 0.3 * (1 - cell.pulse), 0, 6.2832); c.stroke();
+        }
+      }
+    }
+    const S = fit(canvas, () => { build(); draw(0); });
+    S.resize();
+    makeLoop(host, draw);
+  })();
+
+  /* ==========================================================================
+     PLACEHOLDER VISUAL 4 — many small points flow in from the edges and merge
+     into a single steady, bright point.
+     ========================================================================== */
+  (function initVisual4() {
+    const host = $('#visual-4');
+    const canvas = document.createElement('canvas');
+    host.appendChild(canvas);
+    let pts = [], debt = 0;
+    function spawn() {
+      const side = Math.floor(Math.random() * 4);
+      const x = side === 0 ? 0 : side === 1 ? S.w : Math.random() * S.w;
+      const y = side === 2 ? 0 : side === 3 ? S.h : Math.random() * S.h;
+      pts.push({ x: x, y: y, v: rand(28, 62), a: 0, curl: rand(-0.7, 0.7), s: rand(0.8, 2) });
+    }
+    function advance(dt) {
+      const cx = S.w / 2, cy = S.h / 2, R = Math.min(S.w, S.h) / 2, sec = dt / 1000;
+      debt += sec * 26;
+      while (debt >= 1) { spawn(); debt -= 1; }
+      for (let i = pts.length - 1; i >= 0; i--) {
+        const p = pts[i];
+        const dx = cx - p.x, dy = cy - p.y, d = Math.hypot(dx, dy) || 1;
+        if (d < 7) { pts.splice(i, 1); continue; }
+        const far = Math.min(1, d / R);
+        const ux = dx / d, uy = dy / d;
+        const sp = p.v * (0.7 + 0.9 * (1 - far));
+        p.x += (ux - uy * p.curl * far) * sp * sec;
+        p.y += (uy + ux * p.curl * far) * sp * sec;
+        p.a = Math.min(1, p.a + sec * 1.4);
+      }
+    }
+    function draw(dt) {
+      const c = S.ctx, cx = S.w / 2, cy = S.h / 2;
+      if (dt > 0) {
+        advance(dt);
+        c.fillStyle = 'rgba(5,5,5,0.2)'; c.fillRect(0, 0, S.w, S.h);   // soft trails
+      } else {
+        c.fillStyle = '#050505'; c.fillRect(0, 0, S.w, S.h);
+      }
+      for (const p of pts) {
+        c.fillStyle = 'rgba(255,238,212,' + (0.85 * p.a) + ')';
+        c.beginPath(); c.arc(p.x, p.y, p.s, 0, 6.2832); c.fill();
+      }
+      const R = Math.min(S.w, S.h) * 0.2;
+      const g = c.createRadialGradient(cx, cy, 0, cx, cy, R);
+      g.addColorStop(0, 'rgba(255,217,160,0.5)'); g.addColorStop(0.35, 'rgba(255,217,160,0.14)'); g.addColorStop(1, 'rgba(255,217,160,0)');
+      c.fillStyle = g; c.beginPath(); c.arc(cx, cy, R, 0, 6.2832); c.fill();
+      c.fillStyle = '#fff'; c.beginPath(); c.arc(cx, cy, 6.5, 0, 6.2832); c.fill();
+    }
+    const S = fit(canvas, () => {
+      pts = []; for (let i = 0; i < 260; i++) advance(33);   // pre-fill so a still frame is populated
+      draw(0);
+    });
+    S.resize();
+    makeLoop(host, draw);
+  })();
+
+  /* ---------- 7. Closing block background ---------- */
+  initCityCanvas($('#closing-canvas'), { gap: 72, density: 0.8 });
+
+  /* ---------- Scroll-triggered reveal ---------- */
+  (function initReveal() {
+    const items = $$('[data-reveal]');
+    if (!('IntersectionObserver' in window)) { items.forEach(el => el.classList.add('in')); return; }
+    const io = new IntersectionObserver(entries => {
+      entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } });
+    }, { threshold: 0.12, rootMargin: '0px 0px -6% 0px' });
+    items.forEach(el => io.observe(el));
+  })();
+
+  /* ---------- Pinned sequence: hero + sections 2 to 4 ----------
+     Pinned mode: the stage holds still while scroll position drives everything.
+       1. The hero box shrinks (zooms out) and lands behind the section 2 visual,
+          becoming its back layer, while the headline fades and section 2 fades in.
+       2. Sections 2, 3 and 4 then replace each other in place.
+     Flow mode (small screens, or reduced motion): normal scrolling, static hero box. */
+  (function initStage() {
+    const band = $('#dark-band'), stage = $('#stage');
+    const hero = $('#hero'), box = $('#hero-box'), media = $('#hero-media'), target = $('#visual-2');
+    const stories = $$('.story', band);
+    const clamp = v => Math.max(0, Math.min(1, v));
+    const lerp = (a, b, m) => a + (b - a) * m;
+    const ease = x => x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
+    const FADE = 0.2;          // share of each section's scroll spent fading in, and fading out
+    let pinned = false, queued = false, T = null;
+
+    const visuals = stories.map(s => s.querySelector('.visual'));
+    const texts = stories.map(s => $$('.story-text > h2, .story-text > p', s));
+    let rects = [];
+
+    // Split a text block into masked lines and words (same words, same order), or restore it.
+    function split(el, order) {
+      if (el.dataset.src === undefined) el.dataset.src = el.textContent;
+      const words = el.dataset.src.trim().split(/\s+/);
+      el.textContent = '';
+      const spans = words.map((w, i) => {
+        const sp = document.createElement('span');
+        sp.className = 'w'; sp.textContent = w; sp.style.setProperty('--i', i);
+        el.appendChild(sp); el.appendChild(document.createTextNode(' '));
+        return sp;
+      });
+      const lines = []; let lastTop = null;
+      spans.forEach(sp => { if (sp.offsetTop !== lastTop) { lines.push([]); lastTop = sp.offsetTop; } lines[lines.length - 1].push(sp); });
+      el.textContent = '';
+      el.style.setProperty('--e', order);
+      lines.forEach((line, l) => {
+        const mask = document.createElement('span'), inner = document.createElement('span');
+        mask.className = 'ln'; inner.className = 'li'; inner.style.setProperty('--l', l);
+        line.forEach((sp, k) => { if (k) inner.appendChild(document.createTextNode(' ')); inner.appendChild(sp); });
+        mask.appendChild(inner); el.appendChild(mask); el.appendChild(document.createTextNode(' '));
+      });
+    }
+    function unsplit(el) { if (el.dataset.src !== undefined) el.textContent = el.dataset.src; }
+
+    function chooseMode() {
+      band.classList.remove('pinned');
+      texts.forEach(list => list.forEach(unsplit));
+      visuals.forEach(v => v.removeAttribute('style'));
+      stories.forEach(s => s.removeAttribute('data-state'));
+      const room = window.innerHeight - 64 - 40;
+      const fits = stories.every(s => s.querySelector('.story-grid').offsetHeight <= room);
+      pinned = fits && !reduced;
+      band.classList.toggle('pinned', pinned);
+      if (pinned) {
+        texts.forEach(list => list.forEach(split));
+        // Where each section's visual sits; the shared frame travels between these.
+        const a = stage.getBoundingClientRect();
+        rects = visuals.map(v => { const b = v.getBoundingClientRect(); return { l: b.left - a.left, t: b.top - a.top, w: b.width, h: b.height }; });
+        T = rects[0];
+      } else {
+        box.removeAttribute('style'); hero.removeAttribute('style'); media.removeAttribute('style'); stage.removeAttribute('style');
+      }
+      apply();
+    }
+    function apply() {
+      queued = false;
+      const vh = window.innerHeight, vw = stage.clientWidth;
+      const scrolled = -band.getBoundingClientRect().top;
+      const lead = vh * 1.3;                           // scroll distance used by the hero transition
+      const t0 = clamp(scrolled / lead);
+      if (reduced || !pinned) {
+        stories.forEach((s, i) => {
+          if (reduced) { s.style.removeProperty('--o'); s.classList.add('live'); return; }
+          const first = i === 0, last = i === stories.length - 1;
+          const r = s.getBoundingClientRect();
+          const o = (first ? 1 : clamp((vh * 0.92 - r.top) / (vh * 0.3))) * (last ? 1 : clamp((r.bottom - vh * 0.1) / (vh * 0.3)));
+          s.style.setProperty('--o', o.toFixed(3));
+          s.classList.toggle('live', o > 0.01);
+        });
+        return;
+      }
+      if (!T) return;
+      const u = (scrolled - lead) / (vh * 1.1);        // 0.3, 1.5 and 2.5 are the resting points of sections 2, 3 and 4
+      const r1 = clamp((u - 0.65) / 0.55), r2 = clamp((u - 1.8) / 0.5);  // progress of the frame's 2-to-3 and 3-to-4 moves
+
+      // Hero box. Step A: shrinks to the visual's size and moves down to its height, staying centred.
+      // Step B: slides sideways into the section 2 position. After that it is the shared frame and
+      // slides across for section 3 and back for section 4.
+      const a = ease(clamp(t0 / 0.45)), b = ease(clamp((t0 - 0.45) / 0.4));
+      const w = lerp(vw - 24, T.w, a), h = lerp(vh - 76, T.h, a);
+      const left = lerp((vw - w) / 2, T.l, b) + (rects[1].l - rects[0].l) * ease(r1) + (rects[2].l - rects[1].l) * ease(r2);
+      const top = lerp(64, T.t, a) + (rects[1].t - rects[0].t) * ease(r1) + (rects[2].t - rects[1].t) * ease(r2);
+      box.style.width = w + 'px';
+      box.style.height = h + 'px';
+      box.style.top = top + 'px';
+      box.style.left = left + 'px';
+      media.style.setProperty('--s', lerp(1, Math.max(T.w / vw, T.h / vh), a).toFixed(4));
+      media.style.opacity = (1 - clamp(r1 / 0.5)).toFixed(3);          // the video is the back layer of section 2 only
+      stage.style.setProperty('--white', (1 - clamp((t0 - 0.25) / 0.25)).toFixed(3));   // white page turns black
+      hero.style.setProperty('--head', (1 - clamp(t0 / 0.25)).toFixed(3));
+
+      // Visual content: rides with the frame and cross-fades halfway through each change.
+      const show = [
+        clamp((t0 - 0.72) / 0.25) * (1 - clamp(r1 / 0.5)),
+        clamp((r1 - 0.5) / 0.5) * (1 - clamp(r2 / 0.5)),
+        clamp((r2 - 0.5) / 0.5)
+      ];
+      // Text: a state per section; the CSS plays the in and out animations.
+      const state = [
+        // Order of each change: old text leaves, then the frame moves, then new text arrives.
+        // So text is only "in" close to its own resting point, clear of the frame's travel.
+        u >= 0.45 ? 'after' : (t0 > 0.8 ? 'in' : 'before'),
+        u <= 1.4 ? 'before' : (u < 1.6 ? 'in' : 'after'),
+        u > 2.4 ? 'in' : 'before'
+      ];
+      stories.forEach((s, i) => {
+        s.style.setProperty('--o', '1'); s.classList.add('live');
+        if (s.dataset.state !== state[i]) s.dataset.state = state[i];
+        const v = visuals[i];
+        v.style.transform = 'translate(' + (left - rects[i].l).toFixed(1) + 'px,' + (top - rects[i].t).toFixed(1) + 'px)';
+        v.style.opacity = show[i].toFixed(3);
+        v.style.pointerEvents = show[i] > 0.5 ? 'auto' : 'none';
+      });
+    }
+    const request = () => { if (!queued) { queued = true; requestAnimationFrame(apply); } };
+
+    /* ----- Committed transitions (pinned mode only) -----
+       The sequence has four resting positions: hero, section 2, section 3, section 4.
+       Once a scroll moves more than COMMIT_AFTER past one of them, the page carries on
+       to the next one by itself; a smaller nudge settles back. Nobody is left mid-transition.
+       Set COMMIT_HERO to false to leave the hero-to-section-2 transition free-scrolling. */
+    const COMMIT_HERO = true;          // trial: also commit the transition between hero and section 2
+    const COMMIT_AFTER = 0.08;         // threshold, as a share of the screen height
+    let moving = false, lastY = window.scrollY, lastWheel = 0, releaseAt = 0, idleTimer = 0;
+    function rests() {
+      const vh = window.innerHeight, base = band.offsetTop, lead = vh * 1.3, seg = vh * 1.1;
+      return [base, base + lead + seg * 0.3, base + lead + seg * 1.5, base + lead + seg * 2.5];
+    }
+    function glide(to, ms) {
+      const from = window.scrollY, start = performance.now();
+      moving = true;
+      (function step(now) {
+        const k = Math.min(1, (now - start) / ms);
+        window.scrollTo({ top: from + (to - from) * ease(k), behavior: 'instant' });
+        if (k < 1) requestAnimationFrame(step);
+        else { moving = false; lastY = window.scrollY; releaseAt = performance.now() + 1200; }
+      })(start);
+    }
+    // While gliding, and until trackpad momentum has died down afterwards, extra scroll input is ignored.
+    function locked() {
+      if (moving) return true;
+      const now = performance.now();
+      return now < releaseAt && now - lastWheel < 160;
+    }
+    function commit(settle) {
+      if (!pinned || reduced || moving) return;
+      const y = window.scrollY, dir = y - lastY, R = rests(), thr = window.innerHeight * COMMIT_AFTER;
+      lastY = y;
+      for (let k = COMMIT_HERO ? 0 : 1; k < R.length - 1; k++) {
+        const a = R[k], b = R[k + 1];
+        if (y <= a + 1 || y >= b - 1) continue;
+        const ms = k === 0 ? 1500 : 1500;
+        let to = null;
+        if (settle) to = (y - a) < (b - y) ? a : b;                 // scrolling stopped in between: go to the nearer one
+        else if (dir > 0 && y - a > thr) to = b;
+        else if (dir < 0 && b - y > thr) to = a;
+        if (to !== null) glide(to, Math.max(350, ms * Math.abs(to - y) / (b - a)));
+        return;
+      }
+    }
+    const blockInput = e => { if (e.type === 'wheel') { if (locked()) e.preventDefault(); lastWheel = performance.now(); } else if (moving) e.preventDefault(); };
+    window.addEventListener('wheel', blockInput, { passive: false });
+    window.addEventListener('touchmove', blockInput, { passive: false });
+
+    let resizeTimer = 0;
+    window.addEventListener('scroll', () => {
+      request();
+      if (moving) return;
+      if (locked()) { lastY = window.scrollY; } else commit(false);
+      clearTimeout(idleTimer); idleTimer = setTimeout(() => commit(true), 220);
+    }, { passive: true });
+    window.addEventListener('resize', () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(chooseMode, 120); });
+    motionListeners.push(chooseMode);
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(chooseMode);
+    chooseMode();
+  })();
+
+  /* ---------- Top bar ---------- */
+  (function initTopbar() {
+    const bar = $('#topbar'), nav = $('#site-nav'), button = $('#menu-button');
+    const groups = $$('.nav-group', nav);
+    const band = $('#dark-band');
+    const hero = $('#hero');
+    // White bar over the hero, black bar once the page has turned black, white again below the sequence.
+    const onScroll = () => {
+      const y = window.scrollY;
+      const start = band.classList.contains('pinned') ? window.innerHeight * 1.3 * 0.36 : hero.offsetHeight - 64;
+      bar.classList.toggle('on-band', y >= start && y < band.offsetTop + band.offsetHeight - 64);
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onScroll);
+    onScroll();
+
+    function setMenu(open) {
+      nav.classList.toggle('open', open);
+      bar.classList.toggle('menu-open', open);
+      button.setAttribute('aria-expanded', String(open));
+    }
+    button.addEventListener('click', () => setMenu(!nav.classList.contains('open')));
+
+    // All menu links point to "#" for now: keep the page where it is.
+    document.addEventListener('click', e => {
+      const link = e.target.closest ? e.target.closest('a[href="#"]') : null;
+      if (link) e.preventDefault();
+      const group = link && link.classList.contains('nav-trigger') ? link.parentElement : null;
+      groups.forEach(g => g.classList.toggle('open', g === group && !g.classList.contains('open')));
+    });
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape') {
+        groups.forEach(g => g.classList.remove('open'));
+        if (document.activeElement && nav.contains(document.activeElement)) document.activeElement.blur();
+        setMenu(false);
+      }
+    });
+  })();
+})();
+</script>
+</body>
+</html>

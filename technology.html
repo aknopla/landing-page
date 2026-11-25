@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Aknopla | Our technology</title>
+<meta name="description" content="How Aknopla turns open contribution into trusted location intelligence for urban areas, using provenance-based truth discovery.">
+<script>document.documentElement.classList.add('js');</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300..600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* Same system as the home page: white page, near-black type, near-black rounded blocks.
+   Layout idea: a boxed hero with the title set inside it, then an article-like run of
+   heading-left / text-right rows, broken by one dark sequence block and one grid of cards. */
+:root {
+  color-scheme: light;
+  --ink: #050505;
+  --paper: #ffffff;
+  --muted: #5f5f5f;
+  --quiet: #8c8c8c;
+  --line: #e6e6e3;
+  --wash: #f4f4f2;
+  --glow: #ffd9a0;
+  --font: "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+  --mono: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --gutter: clamp(20px, 4vw, 56px);
+  --max: 1320px;
+  --bar: 64px;
+  --radius-block: 28px;
+}
+*, *::before, *::after { box-sizing: border-box; }
+html { scroll-behavior: smooth; overflow-x: clip; }
+body {
+  margin: 0; background: var(--paper); color: var(--ink);
+  font-family: var(--font); font-size: 1.0625rem; line-height: 1.5; font-weight: 400;
+  -webkit-font-smoothing: antialiased; overflow-x: clip;
+}
+h1, h2, h3, p, ol, ul { margin: 0; padding: 0; }
+ol, ul { list-style: none; }
+a { color: inherit; text-decoration: none; }
+:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; border-radius: 4px; }
+.wrap { width: 100%; max-width: var(--max); margin-inline: auto; padding-inline: var(--gutter); }
+.display { font-weight: 400; letter-spacing: -0.025em; line-height: 1; text-wrap: balance; }
+.h2 { font-size: clamp(2rem, 3.6vw, 3.25rem); }
+.body { color: var(--muted); max-width: 36em; }
+.label { font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.04em; text-transform: uppercase; }
+
+/* Scroll reveal */
+.js [data-reveal] {
+  opacity: 0; transform: translateY(28px);
+  transition: opacity .9s cubic-bezier(.2,.7,.2,1), transform .9s cubic-bezier(.2,.7,.2,1);
+  transition-delay: var(--d, 0s);
+}
+.js [data-reveal].in { opacity: 1; transform: none; }
+
+/* ---------- Top bar (same as home page) ---------- */
+.topbar {
+  position: fixed; inset: 0 0 auto 0; z-index: 50; height: var(--bar);
+  background: var(--paper); color: var(--ink); border-bottom: 1px solid transparent;
+  transition: border-color .3s;
+}
+.topbar.scrolled { border-bottom-color: var(--line); }
+.topbar .wrap { height: 100%; display: flex; align-items: center; gap: clamp(20px, 4vw, 48px); }
+.logo { font-size: 1.25rem; font-weight: 500; letter-spacing: -0.02em; }
+.nav { display: flex; align-items: stretch; align-self: stretch; gap: 4px; }
+.nav-group { display: flex; align-items: center; }
+.nav-trigger, .nav-link { display: inline-flex; align-items: center; gap: 6px; padding: 10px 12px; font-size: 0.875rem; border-radius: 8px; }
+.nav-link[aria-current="page"] { text-decoration: underline; text-underline-offset: 6px; text-decoration-thickness: 1px; }
+.nav-trigger::after {
+  content: ""; width: 6px; height: 6px; margin-top: -3px;
+  border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor;
+  transform: rotate(45deg); opacity: .7; transition: transform .25s;
+}
+.nav-group:hover .nav-trigger::after, .nav-group.open .nav-trigger::after { transform: rotate(225deg); margin-top: 3px; }
+.dropdown {
+  position: absolute; top: 100%; left: 0; right: 0;
+  background: var(--paper); color: var(--ink);
+  border-top: 1px solid var(--line); border-bottom: 1px solid var(--line);
+  box-shadow: 0 30px 60px rgba(5,5,5,.10);
+  opacity: 0; visibility: hidden; transition: opacity .25s ease, visibility .25s;
+}
+.dropdown-inner {
+  max-width: var(--max); margin-inline: auto; padding: 48px var(--gutter) 48px;
+  display: flex; flex-direction: column; align-items: flex-start; gap: 0;
+  transform: translateY(-8px); transition: transform .3s cubic-bezier(.2,.7,.2,1);
+}
+.nav-group:hover .dropdown, .nav-group:focus-within .dropdown, .nav-group.open .dropdown { opacity: 1; visibility: visible; }
+.nav-group:hover .dropdown-inner, .nav-group:focus-within .dropdown-inner, .nav-group.open .dropdown-inner { transform: none; }
+.dropdown a { display: block; padding: 4px 0; transition: color .2s; }
+.dropdown a:hover, .dropdown a:focus-visible { color: var(--muted); }
+.dd-title { display: block; font-size: 1.25rem; letter-spacing: -0.01em; line-height: 1.375; }
+.menu-button {
+  display: none; margin-left: auto; font: inherit; font-size: 0.95rem; color: inherit;
+  background: none; border: 1px solid currentColor; border-radius: 8px; padding: 7px 14px; cursor: pointer;
+}
+
+/* ---------- 1. Hero: rounded box with the title set inside, bottom left ---------- */
+.hero { padding: var(--bar) 12px 0; }
+.hero-box {
+  position: relative; overflow: hidden;
+  min-height: min(72vh, 680px);
+  background: var(--ink); color: #fff; border-radius: var(--radius-block);
+  display: flex; flex-direction: column; justify-content: flex-end; gap: 24px;
+  padding: clamp(28px, 5vw, 72px) calc(var(--gutter) - 12px);
+  padding-top: clamp(120px, 22vh, 220px);
+}
+.hero-box canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+.hero-box::after { content: ""; position: absolute; inset: 0; background: linear-gradient(rgba(5,5,5,.2), rgba(5,5,5,.72)); }
+.hero-box > :not(canvas) { position: relative; z-index: 1; }
+.hero h1 { font-size: clamp(2.5rem, 5.4vw, 5.25rem); max-width: 12em; }
+.hero .lede { font-size: clamp(1.0625rem, 1.5vw, 1.3125rem); line-height: 1.4; color: rgba(255,255,255,.82); max-width: 34em; }
+
+/* ---------- Rows: heading left, text right ---------- */
+.row { padding-block: clamp(72px, 11vh, 140px); }
+.row + .row { padding-top: 0; }
+.split { display: grid; grid-template-columns: 1fr; gap: 28px clamp(32px, 6vw, 104px); align-items: start; }
+.split-text { display: flex; flex-direction: column; gap: 20px; }
+.split-text .lead { font-size: clamp(1.25rem, 1.9vw, 1.625rem); line-height: 1.3; letter-spacing: -0.015em; max-width: 26em; }
+.rule { border-top: 1px solid var(--line); padding-top: clamp(40px, 6vh, 72px); }
+@media (min-width: 900px) {
+  .split { grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); }
+  .split.even { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: center; }
+}
+
+/* ---------- 3. The process: four steps as a sequence, on a dark block ---------- */
+.process-block {
+  background: var(--ink); color: #fff; border-radius: var(--radius-block);
+  padding: clamp(40px, 6vw, 88px) clamp(24px, 4.5vw, 72px);
+}
+.process-block h2 { max-width: 14em; }
+.steps { display: grid; grid-template-columns: 1fr; gap: 28px; margin-top: clamp(40px, 7vh, 88px); counter-reset: none; }
+.step { position: relative; display: flex; flex-direction: column; gap: 14px; padding-top: 22px; }
+/* track + node above each step; the active step's track fills */
+.step::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 1px; background: rgba(255,255,255,.2); }
+.step::after {
+  content: ""; position: absolute; left: 0; top: 0; height: 1px; width: 0; background: var(--glow);
+}
+.step.active::after { width: 100%; transition: width 2.4s linear; }
+.step.done::after { width: 100%; }
+.step .num { color: rgba(255,255,255,.55); transition: color .4s; }
+.step.active .num, .step.done .num { color: var(--glow); }
+.step p { color: rgba(255,255,255,.72); font-size: 1rem; line-height: 1.5; }
+.step p strong { display: block; margin-bottom: 8px; color: #fff; font-weight: 400; font-size: clamp(1.375rem, 1.9vw, 1.75rem); letter-spacing: -0.02em; line-height: 1.1; }
+@media (min-width: 900px) { .steps { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 20px; } }
+@media (min-width: 560px) and (max-width: 899px) { .steps { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+/* ---------- 4. Four blocks ---------- */
+.blocks { display: grid; grid-template-columns: 1fr; gap: 12px; margin-top: clamp(36px, 6vh, 64px); }
+.block { background: var(--wash); border-radius: 16px; padding: 28px; display: flex; flex-direction: column; gap: 40px; justify-content: space-between; min-height: 220px; }
+.block h3 { font-size: clamp(1.375rem, 1.9vw, 1.75rem); font-weight: 400; letter-spacing: -0.02em; line-height: 1.1; }
+.block p { color: var(--muted); font-size: 1rem; max-width: 30em; }
+@media (min-width: 760px) { .blocks { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+/* ---------- 6. Sources visual ---------- */
+.visual {
+  position: relative; width: min(100%, 560px); aspect-ratio: 4 / 3; margin-inline: auto;
+  background: var(--ink); border-radius: var(--radius-block); overflow: hidden; color: #fff;
+}
+.visual canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.src-label { position: absolute; left: 9%; color: rgba(255,255,255,.8); white-space: nowrap; }
+.src-label.a { top: 13%; }
+.src-label.b { bottom: 13%; }
+
+/* ---------- 7. Closing ---------- */
+.closing { padding-bottom: clamp(56px, 9vh, 110px); }
+.closing-block {
+  position: relative; overflow: hidden;
+  background: var(--ink); color: #fff; border-radius: var(--radius-block);
+  padding: clamp(48px, 9vw, 128px) clamp(24px, 6vw, 96px);
+  min-height: min(64vh, 580px);
+  display: flex; flex-direction: column; justify-content: flex-end; align-items: flex-start; gap: 28px;
+}
+.closing-block canvas { position: absolute; inset: 0; width: 100%; height: 100%; opacity: .7; }
+.closing-block > :not(canvas) { position: relative; }
+.closing-block p { max-width: 30em; font-size: clamp(1.0625rem, 1.5vw, 1.3125rem); color: rgba(255,255,255,.78); }
+.btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  font: inherit; font-size: 1rem; font-weight: 500;
+  background: #000; color: #fff; border: 0; border-radius: 8px; padding: 14px 22px; cursor: pointer;
+}
+.closing-block .btn { background: #fff; color: #000; }
+
+/* ---------- 8. Further reading ---------- */
+.reading { padding-bottom: clamp(72px, 11vh, 140px); }
+.reading h2 { font-size: clamp(1.5rem, 2.4vw, 2.25rem); }
+.papers { border-top: 1px solid var(--line); }
+.papers li { border-bottom: 1px solid var(--line); }
+.papers a { display: flex; align-items: baseline; justify-content: space-between; gap: 8px 24px; flex-wrap: wrap; padding: 18px 0; transition: color .2s; }
+.papers a:hover .t, .papers a:focus-visible .t { text-decoration: underline; text-underline-offset: 4px; text-decoration-thickness: 1px; }
+.papers .t { font-size: 1.0625rem; }
+.papers .t::after { content: " \2197"; color: var(--quiet); }
+.papers .m { color: var(--muted); font-size: 0.875rem; white-space: nowrap; }
+
+/* ---------- Footer: link columns and one small line, on white ---------- */
+.footer { background: var(--paper); color: var(--ink); border-top: 1px solid var(--line); padding-block: clamp(72px, 12vh, 160px) 32px; }
+.footer .wrap { display: flex; flex-direction: column; gap: clamp(56px, 9vh, 96px); }
+.footer-top { display: grid; grid-template-columns: 1fr; gap: 40px; align-items: start; }
+.footer .logo { font-size: 1.25rem; }
+.footer-cols { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 32px 24px; }
+.footer-col { display: flex; flex-direction: column; gap: 0; }
+.footer-col .label { color: var(--quiet); margin-bottom: 16px; min-height: 1.5em; }
+.footer-col a { font-size: 0.875rem; line-height: 1.5; padding: 2px 0; align-self: flex-start; }
+.footer-col a:hover, .footer-col a:focus-visible { color: var(--muted); }
+.footer-note { font-size: 0.8125rem; color: var(--muted); border-top: 1px solid var(--line); padding-top: 24px; }
+@media (min-width: 760px) {
+  .footer-top { grid-template-columns: minmax(120px, 1fr) minmax(0, 5fr); }
+  .footer-cols { grid-template-columns: repeat(3, minmax(0, 200px)); }
+}
+
+/* ---------- Mobile ---------- */
+@media (max-width: 760px) {
+  .menu-button { display: inline-flex; }
+  .nav {
+    display: none; position: absolute; top: var(--bar); left: 0; right: 0;
+    flex-direction: column; align-items: stretch; gap: 8px;
+    padding: 12px var(--gutter) 24px; background: var(--paper); color: var(--ink);
+    border-bottom: 1px solid var(--line); max-height: calc(100vh - var(--bar)); overflow-y: auto;
+  }
+  .nav.open { display: flex; }
+  .nav-group { display: block; }
+  .nav-trigger { padding: 10px 0; color: var(--muted); }
+  .nav-trigger::after { display: none; }
+  .nav-link { padding: 10px 0; font-size: 1.125rem; }
+  .dropdown { position: static; border: 0; box-shadow: none; opacity: 1; visibility: visible; }
+  .dropdown-inner { padding: 0; transform: none; gap: 0; }
+  .dd-title { font-size: 1.125rem; }
+  .dropdown a { padding: 10px 0; }
+}
+
+/* ---------- Reduced motion ---------- */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .js [data-reveal] { opacity: 1; transform: none; transition: none; }
+  .dropdown, .dropdown-inner { transition: none; }
+  .step.active::after { transition: none; }
+}
+</style>
+</head>
+<body>
+
+<!-- Top bar -->
+<header class="topbar" id="topbar">
+  <div class="wrap">
+    <!-- PLACEHOLDER LOGO: replace the contents of #logo with the final logo. -->
+    <a href="index.html" class="logo" id="logo">Aknopla</a>
+    <nav class="nav" id="site-nav" aria-label="Main">
+      <div class="nav-group">
+        <a href="#" class="nav-trigger" aria-haspopup="true">Products</a>
+        <div class="dropdown"><div class="dropdown-inner">
+          <a href="#"><span class="dd-title">I Know A Place</span></a>
+          <a href="#"><span class="dd-title">Lantern-Rise</span></a>
+        </div></div>
+      </div>
+      <div class="nav-group">
+        <a href="#" class="nav-trigger" aria-haspopup="true">Solutions</a>
+        <div class="dropdown"><div class="dropdown-inner">
+          <a href="#"><span class="dd-title">Place owners</span></a>
+          <a href="#"><span class="dd-title">Intelligence</span></a>
+        </div></div>
+      </div>
+      <a href="technology.html" class="nav-link" aria-current="page">Technology</a>
+    </nav>
+    <button class="menu-button" id="menu-button" type="button" aria-controls="site-nav" aria-expanded="false">Menu</button>
+  </div>
+</header>
+
+<main>
+
+<!-- 1. Hero -->
+<section class="hero">
+  <div class="hero-box">
+    <!-- PLACEHOLDER MEDIA: animated canvas (same city-grid as the home page). Swap for an image or video. -->
+    <canvas id="hero-canvas" aria-hidden="true"></canvas>
+    <h1 class="display">Trust, worked out from the evidence.</h1>
+    <p class="lede">Anyone can contribute to Aknopla. Our technology decides how much weight each contribution deserves, and keeps every value current as the evidence changes.</p>
+  </div>
+</section>
+
+<!-- 2. The principle -->
+<section class="row">
+  <div class="wrap split">
+    <h2 class="display h2" data-reveal>Open to everyone, weighed one by one</h2>
+    <div class="split-text">
+      <p class="lead" data-reveal style="--d:.08s">We do not approve contributors in advance. Each contribution is weighed when it arrives, on the evidence it carries.</p>
+      <p class="body" data-reveal style="--d:.16s">This is the research problem known as truth discovery: finding what is true when many sources disagree and none is known to be reliable beforehand. Our approach to it is built on data provenance.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 3. The process (four steps, shown as a sequence) -->
+<section class="row">
+  <div class="wrap">
+    <div class="process-block" data-reveal>
+      <h2 class="display h2">From a contribution to a published value</h2>
+      <!-- The highlight that travels from step 1 to step 4 is driven by initSteps(). -->
+      <ol class="steps" id="steps">
+        <li class="step"><span class="num label">1</span><p><strong>Contribute.</strong> Someone who visits or runs a place answers a set question about it, such as its time limit or its price.</p></li>
+        <li class="step"><span class="num label">2</span><p><strong>Record.</strong> The contribution is stored with its provenance: when, where and how it was made.</p></li>
+        <li class="step"><span class="num label">3</span><p><strong>Weigh.</strong> Its reliability is inferred from that record, from any supporting evidence such as a photo taken at the place, and from the contributor's track record.</p></li>
+        <li class="step"><span class="num label">4</span><p><strong>Estimate.</strong> Every contribution on the same question is combined into one current value, which is revised whenever new evidence arrives.</p></li>
+      </ol>
+    </div>
+  </div>
+</section>
+
+<!-- 4. What makes it reliable (four blocks) -->
+<section class="row">
+  <div class="wrap">
+    <h2 class="display h2" data-reveal>What makes the result reliable</h2>
+    <div class="blocks">
+      <article class="block" data-reveal>
+        <h3>Provenance over identity</h3>
+        <p>Weight comes from a contribution's record, whoever the contributor says they are.</p>
+      </article>
+      <article class="block" data-reveal style="--d:.08s">
+        <h3>Independent sources</h3>
+        <p>Agreement counts only when it comes from independent sources. Many accounts repeating one answer do not outweigh a few independent witnesses, so adding accounts adds no influence.</p>
+      </article>
+      <article class="block" data-reveal>
+        <h3>Track record</h3>
+        <p>A contributor's reliability is learned from their history, including people who contribute only a few times.</p>
+      </article>
+      <article class="block" data-reveal style="--d:.08s">
+        <h3>Values that move</h3>
+        <p>Every value is an estimate with a date. Recent evidence from the place itself can replace a long-standing answer.</p>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- 5. Structure -->
+<section class="row">
+  <div class="wrap">
+    <div class="split rule">
+      <h2 class="display h2" data-reveal>Structured from the start</h2>
+      <div class="split-text">
+        <p class="lead" data-reveal style="--d:.08s">Each kind of place has its own schema: a fixed set of questions asked of every place of that kind. Contributions arrive as comparable data points, with no free text to interpret.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 6. Sources -->
+<section class="row">
+  <div class="wrap">
+    <div class="split even rule">
+      <div class="split-text">
+        <h2 class="display h2" data-reveal>Two independent kinds of source</h2>
+        <p class="body" data-reveal style="--d:.08s">Visitors contribute through I Know A Place. Owners and staff contribute through Lantern-Rise. Both answer the same questions, which gives every place two independent kinds of source.</p>
+      </div>
+      <!-- PLACEHOLDER VISUAL: two sources feeding one place. Built in code by initSources();
+           replace the contents of #visual-sources to swap it. -->
+      <div class="visual" id="visual-sources" data-reveal aria-hidden="true">
+        <canvas></canvas>
+        <span class="src-label a label">I Know A Place</span>
+        <span class="src-label b label">Lantern-Rise</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 7. Closing -->
+<section class="closing">
+  <div class="wrap">
+    <div class="closing-block" data-reveal>
+      <!-- PLACEHOLDER BACKGROUND: subtle animated canvas. -->
+      <canvas id="closing-canvas" aria-hidden="true"></canvas>
+      <h2 class="display h2">What reaches you</h2>
+      <p>Place data that is broad, deep and current, with a provenance-backed basis for trusting each value.</p>
+      <!-- Destination not decided yet: points to "#" for now. -->
+      <a class="btn" href="#">Talk to us</a>
+    </div>
+  </div>
+</section>
+
+<!-- 8. Further reading (optional section: delete this <section> to remove it) -->
+<section class="reading">
+  <div class="wrap split">
+    <div class="split-text">
+      <h2 class="display" data-reveal>The research behind the field</h2>
+      <p class="body" data-reveal style="--d:.08s">Truth discovery is an established area of research. These papers describe the problems our technology addresses.</p>
+    </div>
+    <ul class="papers" data-reveal style="--d:.12s">
+      <li><a href="https://arxiv.org/abs/1505.02463"><span class="t">A Survey on Truth Discovery</span><span class="m">(Li et al., 2015)</span></a></li>
+      <li><a href="https://cse.buffalo.edu/~jing/doc/kdd15_evolve.pdf"><span class="t">On the Discovery of Evolving Truth</span><span class="m">(KDD 2015)</span></a></li>
+      <li><a href="https://cse.buffalo.edu/~jing/doc/vldb15_CATD.pdf"><span class="t">A Confidence-Aware Approach for Truth Discovery on Long-Tail Data</span><span class="m">(VLDB 2015)</span></a></li>
+      <li><a href="https://research.google/pubs/data-fusion-resolving-conflicts-from-multiple-sources/"><span class="t">Data Fusion: Resolving Conflicts from Multiple Sources</span><span class="m">(Dong, Berti-Equille, Srivastava)</span></a></li>
+      <li><a href="https://mcrowdsourcing.syr.edu/wp-content/uploads/2019/12/Tang-ICDCS19.pdf"><span class="t">A Sybil-Resistant Truth Discovery Framework for Mobile Crowdsensing</span><span class="m">(ICDCS 2019)</span></a></li>
+    </ul>
+  </div>
+</section>
+
+</main>
+
+<footer class="footer">
+  <div class="wrap">
+    <div class="footer-top">
+      <!-- PLACEHOLDER LOGO (footer copy) -->
+      <a href="index.html" class="logo">Aknopla</a>
+      <nav class="footer-cols" aria-label="Footer">
+        <div class="footer-col">
+          <p class="label">Products</p>
+          <a href="#">I Know A Place</a>
+          <a href="#">Lantern-Rise</a>
+        </div>
+        <div class="footer-col">
+          <p class="label">Solutions</p>
+          <a href="#">Place owners</a>
+          <a href="#">Intelligence</a>
+        </div>
+        <div class="footer-col">
+          <p class="label" aria-hidden="true"></p>
+          <a href="technology.html" aria-current="page">Technology</a>
+        </div>
+      </nav>
+    </div>
+    <p class="footer-note">Aknopla. Understanding human interactions with every place, in real time.</p>
+    <!-- Copyright line, legal links and social links can join this bottom line once the wording exists. -->
+  </div>
+</footer>
+
+<script>
+(function () {
+  'use strict';
+  const $ = (s, r) => (r || document).querySelector(s);
+  const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
+  const rand = (a, b) => a + Math.random() * (b - a);
+
+  /* ---------- Reduced motion ---------- */
+  const motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+  let reduced = motionQuery.matches;
+  const motionListeners = [];
+  const onMotionChange = () => { reduced = motionQuery.matches; motionListeners.forEach(fn => fn()); };
+  if (motionQuery.addEventListener) motionQuery.addEventListener('change', onMotionChange);
+  else if (motionQuery.addListener) motionQuery.addListener(onMotionChange);
+
+  /* ---------- Canvas helpers (same as the home page) ---------- */
+  function fit(canvas, onResize) {
+    const S = { w: 1, h: 1, ctx: canvas.getContext('2d') };
+    S.resize = function () {
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      S.w = Math.max(1, canvas.clientWidth); S.h = Math.max(1, canvas.clientHeight);
+      canvas.width = Math.round(S.w * dpr); canvas.height = Math.round(S.h * dpr);
+      S.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      if (onResize) onResize();
+    };
+    if ('ResizeObserver' in window) new ResizeObserver(S.resize).observe(canvas);
+    else window.addEventListener('resize', S.resize);
+    return S;
+  }
+  // Runs draw(dtMs) each frame while on screen and motion is allowed; otherwise one still frame.
+  function makeLoop(el, draw) {
+    let raf = 0, last = 0, visible = !('IntersectionObserver' in window);
+    function frame(t) { const dt = last ? Math.min(50, t - last) : 16; last = t; draw(dt); raf = requestAnimationFrame(frame); }
+    function update() {
+      const run = visible && !reduced;
+      if (run && !raf) { last = 0; raf = requestAnimationFrame(frame); }
+      else if (!run && raf) { cancelAnimationFrame(raf); raf = 0; }
+      if (!run) draw(0);
+    }
+    if ('IntersectionObserver' in window) new IntersectionObserver(es => { visible = es[es.length - 1].isIntersecting; update(); }).observe(el);
+    motionListeners.push(update);
+    update();
+  }
+
+  /* PLACEHOLDER — city-grid canvas: slow-moving points of light on a dark grid. */
+  function initCityCanvas(canvas, opts) {
+    const gap = opts.gap;
+    let pts = [];
+    function newPoint() {
+      const horizontal = Math.random() < 0.5, span = horizontal ? S.h : S.w;
+      return { horizontal: horizontal, line: Math.floor(Math.random() * (span / gap + 1)) * gap,
+        pos: Math.random() * (horizontal ? S.w : S.h), speed: rand(6, 26) * (Math.random() < 0.5 ? -1 : 1),
+        size: rand(0.9, 2.2), warm: Math.random() < 0.6 };
+    }
+    function seed() { const n = Math.round((S.w + S.h) / gap * opts.density); pts = []; for (let i = 0; i < n; i++) pts.push(newPoint()); }
+    function draw(dt) {
+      const c = S.ctx, w = S.w, h = S.h;
+      c.clearRect(0, 0, w, h); c.lineWidth = 1;
+      for (let x = 0, i = 0; x <= w; x += gap, i++) {
+        c.strokeStyle = i % 4 === 0 ? 'rgba(255,255,255,0.10)' : 'rgba(255,255,255,0.045)';
+        c.beginPath(); c.moveTo(x + 0.5, 0); c.lineTo(x + 0.5, h); c.stroke();
+      }
+      for (let y = 0, j = 0; y <= h; y += gap, j++) {
+        c.strokeStyle = j % 4 === 0 ? 'rgba(255,255,255,0.10)' : 'rgba(255,255,255,0.045)';
+        c.beginPath(); c.moveTo(0, y + 0.5); c.lineTo(w, y + 0.5); c.stroke();
+      }
+      for (const p of pts) {
+        const len = p.horizontal ? w : h;
+        p.pos += p.speed * dt / 1000;
+        if (p.pos > len + 40) p.pos = -40; else if (p.pos < -40) p.pos = len + 40;
+        const x = p.horizontal ? p.pos : p.line, y = p.horizontal ? p.line : p.pos;
+        const tail = 34 * Math.sign(p.speed);
+        const tx = p.horizontal ? x - tail : x, ty = p.horizontal ? y : y - tail;
+        const rgb = p.warm ? '255,217,160' : '255,255,255';
+        const g = c.createLinearGradient(x, y, tx, ty);
+        g.addColorStop(0, 'rgba(' + rgb + ',0.55)'); g.addColorStop(1, 'rgba(' + rgb + ',0)');
+        c.strokeStyle = g; c.lineWidth = p.size;
+        c.beginPath(); c.moveTo(x, y); c.lineTo(tx, ty); c.stroke();
+        const halo = c.createRadialGradient(x, y, 0, x, y, p.size * 7);
+        halo.addColorStop(0, 'rgba(' + rgb + ',0.35)'); halo.addColorStop(1, 'rgba(' + rgb + ',0)');
+        c.fillStyle = halo; c.beginPath(); c.arc(x, y, p.size * 7, 0, 6.2832); c.fill();
+        c.fillStyle = 'rgba(' + rgb + ',0.95)'; c.beginPath(); c.arc(x, y, p.size, 0, 6.2832); c.fill();
+      }
+    }
+    const S = fit(canvas, () => { seed(); draw(0); });
+    S.resize();
+    makeLoop(canvas, draw);
+  }
+  initCityCanvas($('#hero-canvas'), { gap: 56, density: 1.3 });
+  initCityCanvas($('#closing-canvas'), { gap: 72, density: 0.8 });
+
+  /* ---------- 3. Process: a highlight travels from step 1 to step 4, then starts again ---------- */
+  (function initSteps() {
+    const list = $('#steps'), steps = $$('.step', list);
+    let i = -1, timer = 0, visible = false;
+    function show(n) {
+      i = n;
+      steps.forEach((s, k) => { s.classList.toggle('done', k < n); s.classList.toggle('active', k === n); });
+    }
+    function next() {
+      if (i >= steps.length - 1) { steps.forEach(s => s.classList.remove('done', 'active')); i = -1; void list.offsetWidth; }
+      show(i + 1);
+    }
+    function sync() {
+      clearInterval(timer); timer = 0;
+      if (reduced) { steps.forEach(s => { s.classList.remove('active'); s.classList.add('done'); }); return; }   // still: all steps marked
+      if (visible) { if (i < 0) next(); timer = setInterval(next, 2600); }
+    }
+    if ('IntersectionObserver' in window) new IntersectionObserver(es => { visible = es[es.length - 1].isIntersecting; sync(); }, { threshold: 0.3 }).observe(list);
+    else { visible = true; }
+    motionListeners.push(() => { if (!reduced) { steps.forEach(s => s.classList.remove('done', 'active')); i = -1; } sync(); });
+    sync();
+  })();
+
+  /* ==========================================================================
+     PLACEHOLDER VISUAL — two kinds of source (a circle and a square) each send
+     points along their own path into one steady, bright point: the place.
+     ========================================================================== */
+  (function initSources() {
+    const host = $('#visual-sources'), canvas = $('canvas', host);
+    let pts = [], debt = 0;
+    const geo = () => ({ a: [S.w * 0.16, S.h * 0.3], b: [S.w * 0.16, S.h * 0.7], p: [S.w * 0.8, S.h * 0.5] });
+    function at(src, t, G) {                         // point on a curved path from a source to the place
+      const s = src ? G.b : G.a, cx = S.w * 0.52, cy = s[1], u = 1 - t;
+      return [u * u * s[0] + 2 * u * t * cx + t * t * G.p[0], u * u * s[1] + 2 * u * t * cy + t * t * G.p[1]];
+    }
+    function draw(dt) {
+      const c = S.ctx, G = geo(), sec = dt / 1000;
+      c.clearRect(0, 0, S.w, S.h);
+      debt += sec * 2.2;
+      while (debt >= 1) { pts.push({ src: Math.random() < 0.5 ? 0 : 1, t: 0, v: rand(0.16, 0.26), s: rand(1.2, 2.2) }); debt -= 1; }
+      // paths
+      c.lineWidth = 1; c.strokeStyle = 'rgba(255,255,255,0.16)';
+      [0, 1].forEach(src => { const s = src ? G.b : G.a; c.beginPath(); c.moveTo(s[0], s[1]); c.quadraticCurveTo(S.w * 0.52, s[1], G.p[0], G.p[1]); c.stroke(); });
+      // travelling points
+      for (let k = pts.length - 1; k >= 0; k--) {
+        const p = pts[k]; p.t += p.v * sec;
+        if (p.t >= 1) { pts.splice(k, 1); continue; }
+        const q = at(p.src, p.t, G);
+        c.fillStyle = 'rgba(255,238,212,' + (0.9 * Math.min(1, p.t * 6)) + ')';
+        c.beginPath(); c.arc(q[0], q[1], p.s, 0, 6.2832); c.fill();
+      }
+      // sources: circle and square
+      c.fillStyle = 'rgba(255,255,255,0.9)';
+      c.beginPath(); c.arc(G.a[0], G.a[1], 6, 0, 6.2832); c.fill();
+      c.beginPath(); if (c.roundRect) c.roundRect(G.b[0] - 6, G.b[1] - 6, 12, 12, 2.5); else c.rect(G.b[0] - 6, G.b[1] - 6, 12, 12); c.fill();
+      // the place: one steady, bright point
+      const R = Math.min(S.w, S.h) * 0.22;
+      const g = c.createRadialGradient(G.p[0], G.p[1], 0, G.p[0], G.p[1], R);
+      g.addColorStop(0, 'rgba(255,217,160,0.5)'); g.addColorStop(0.35, 'rgba(255,217,160,0.14)'); g.addColorStop(1, 'rgba(255,217,160,0)');
+      c.fillStyle = g; c.beginPath(); c.arc(G.p[0], G.p[1], R, 0, 6.2832); c.fill();
+      c.fillStyle = '#fff'; c.beginPath(); c.arc(G.p[0], G.p[1], 6.5, 0, 6.2832); c.fill();
+    }
+    const S = fit(canvas, () => {
+      pts = []; for (let k = 0; k < 9; k++) pts.push({ src: k % 2, t: (k + 0.5) / 9, v: rand(0.16, 0.26), s: rand(1.2, 2.2) });   // pre-filled so a still frame is populated
+      draw(0);
+    });
+    S.resize();
+    makeLoop(host, draw);
+  })();
+
+  /* ---------- Scroll-triggered reveal ---------- */
+  (function initReveal() {
+    const items = $$('[data-reveal]');
+    if (!('IntersectionObserver' in window)) { items.forEach(el => el.classList.add('in')); return; }
+    const io = new IntersectionObserver(entries => {
+      entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } });
+    }, { threshold: 0.12, rootMargin: '0px 0px -6% 0px' });
+    items.forEach(el => io.observe(el));
+  })();
+
+  /* ---------- Top bar ---------- */
+  (function initTopbar() {
+    const bar = $('#topbar'), nav = $('#site-nav'), button = $('#menu-button');
+    const groups = $$('.nav-group', nav);
+    const onScroll = () => bar.classList.toggle('scrolled', window.scrollY > 8);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+    function setMenu(open) { nav.classList.toggle('open', open); button.setAttribute('aria-expanded', String(open)); }
+    button.addEventListener('click', () => setMenu(!nav.classList.contains('open')));
+    // Links that still point to "#" keep the page where it is.
+    document.addEventListener('click', e => {
+      const link = e.target.closest ? e.target.closest('a[href="#"]') : null;
+      if (link) e.preventDefault();
+      const group = link && link.classList.contains('nav-trigger') ? link.parentElement : null;
+      groups.forEach(g => g.classList.toggle('open', g === group && !g.classList.contains('open')));
+    });
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape') {
+        groups.forEach(g => g.classList.remove('open'));
+        if (document.activeElement && nav.contains(document.activeElement)) document.activeElement.blur();
+        setMenu(false);
+      }
+    });
+  })();
+})();
+</script>
+</body>
+</html>
